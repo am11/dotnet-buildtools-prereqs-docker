@@ -10,7 +10,6 @@ RUN apk update && \
         build-base \
         clang \
         clang-dev \
-        cmake \
         coreutils \
         gcc \
         gettext-dev \
@@ -35,6 +34,7 @@ RUN apk update && \
         wget \
         zlib-dev && \
     apk -X http://dl-cdn.alpinelinux.org/alpine/edge/main add --no-cache \
+        cmake \
         userspace-rcu-dev \
         lttng-ust-dev \
         numactl-dev
