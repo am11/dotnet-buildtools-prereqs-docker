@@ -16,6 +16,7 @@ RUN yum install -y \
         gdb \
         git \
         krb5-devel \
+        lbzip2 \
         libcurl-devel \
         libedit-devel \
         libgdiplus \
