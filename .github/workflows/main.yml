@@ -1,0 +1,13 @@
+name: JIT Diffs
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: test
+        run: exec ./dotnet-buildtools-prereqs-docker/src/ubuntu/build-scripts/install-cross-build-prereqs.sh
