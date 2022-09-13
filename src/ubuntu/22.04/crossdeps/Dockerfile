@@ -46,4 +46,5 @@ RUN wget -O- https://apt.llvm.org/llvm.sh | bash -s -- 15 \
         lldb \
         llvm \
         python3-lldb \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/clang-15 /usr/bin/clang
