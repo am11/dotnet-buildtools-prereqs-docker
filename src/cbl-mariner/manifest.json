@@ -397,6 +397,19 @@
         {
           "platforms": [
             {
+              "dockerfile": "src/cbl-mariner/2.0/cross/cross/amd64/haiku",
+              "os": "linux",
+              "osVersion": "cbl-mariner2.0",
+              "tags": {
+                "cbl-mariner-2.0-cross-amd64-haiku-$(System:TimeStamp)-$(System:DockerfileGitCommitSha)": {},
+                "cbl-mariner-2.0-cross-amd64-haiku$(FloatingTagSuffix)": {}
+              }
+            }
+          ]
+        },
+        {
+          "platforms": [
+            {
               "dockerfile": "src/cbl-mariner/2.0/cross/freebsd/13/amd64",
               "os": "linux",
               "osVersion": "cbl-mariner2.0",
