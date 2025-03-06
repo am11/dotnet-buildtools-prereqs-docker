@@ -1,0 +1,90 @@
+name: Check for New LLVM Tag
+
+on:
+  schedule:
+    - cron: '0 13 * * 0'  # Run every Sunday at 13:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check-for-new-tag:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up the GitHub CLI
+      - name: Set up GitHub CLI
+        uses: cli/cli@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Fetch the latest tag from llvm-project
+      - name: Get latest llvm-project tag
+        id: get_tag
+        run: |
+          TAG=$(curl --silent https://api.github.com/repos/llvm/llvm-project/tags | jq -r '.[0].name')
+          echo "Latest tag: $TAG"
+          echo "latest_tag=$TAG" >> $GITHUB_OUTPUT
+
+      # Download the source archive and calculate SHA256 checksum
+      - name: Download and calculate SHA256 checksum for llvm-project
+        id: download_and_sha
+        run: |
+          latest_tag=${{ steps.get_tag.outputs.latest_tag }}
+          file_url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${latest_tag}/llvm-project-${latest_tag}.src.tar.xz"
+          output_file="llvm-project-${latest_tag}.src.tar.xz"
+          
+          # Download the file
+          wget $file_url -O $output_file
+          
+          # Calculate the SHA256 checksum
+          sha256sum $output_file > checksum.txt
+          sha256=$(awk '{ print $1 }' checksum.txt)
+          
+          echo "SHA256 checksum: $sha256"
+          echo "sha256_checksum=$sha256" >> $GITHUB_OUTPUT
+
+      # Read the current version in Dockerfile and compare
+      - name: Compare current version with latest tag
+        id: compare_versions
+        run: |
+          current_version=$(grep -oP 'LLVM_VERSION=\K[^ ]+' src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile)
+          latest_tag=${{ steps.get_tag.outputs.latest_tag }}
+          echo "Current version: $current_version"
+          echo "Latest tag: $latest_tag"
+          
+          if [[ "$current_version" != "$latest_tag" ]]; then
+            echo "New version available: $latest_tag"
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No update needed"
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+          fi
+
+      # If an update is needed, update the Dockerfiles and create a PR
+      - name: Update Dockerfiles and create PR
+        if: steps.compare_versions.outputs.update_needed == 'true'
+        run: |
+          latest_tag=${{ steps.get_tag.outputs.latest_tag }}
+          sha256_checksum=${{ steps.download_and_sha.outputs.sha256_checksum }}
+          
+          # Update Dockerfiles with the new version and SHA256 checksum
+          sed -i "s/LLVM_VERSION=[^ ]*/LLVM_VERSION=${latest_tag}/g" src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
+          sed -i "s/LLVM_VERSION=[^ ]*/LLVM_VERSION=${latest_tag}/g" src/azurelinux/3.0/net10.0/opt/Dockerfile
+          sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/\$sha256_checksum llvm-project.src.tar.xz/g" src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
+          sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/\$sha256_checksum llvm-project.src.tar.xz/g" src/azurelinux/3.0/net10.0/opt/Dockerfile
+
+          # Commit the changes
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git add src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
+          git add src/azurelinux/3.0/net10.0/opt/Dockerfile
+          git commit -m "Update llvm from version $current_version to version $latest_tag"
+          git push origin HEAD
+
+          # Create a PR using GitHub CLI
+          gh pr create --title "Update llvm from version $current_version to version $latest_tag" \
+                       --body "This PR updates llvm from version $current_version to $latest_tag.\n\nCC: @sbomer, @mthalman" \
+                       --base main \
+                       --head $GITHUB_REF
