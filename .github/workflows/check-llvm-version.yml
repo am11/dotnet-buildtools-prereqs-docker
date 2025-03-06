@@ -9,17 +9,9 @@ jobs:
   check-for-new-tag:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Set up the GitHub CLI
-      - name: Set up GitHub CLI
-        uses: cli/cli@v2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Fetch the latest tag from llvm-project
       - name: Get latest llvm-project tag
         id: get_tag
         run: |
@@ -27,7 +19,6 @@ jobs:
           echo "Latest tag: $TAG"
           echo "latest_tag=$TAG" >> $GITHUB_OUTPUT
 
-      # Download the source archive and calculate SHA256 checksum
       - name: Download and calculate SHA256 checksum for llvm-project
         id: download_and_sha
         run: |
@@ -45,7 +36,6 @@ jobs:
           echo "SHA256 checksum: $sha256"
           echo "sha256_checksum=$sha256" >> $GITHUB_OUTPUT
 
-      # Read the current version in Dockerfile and compare
       - name: Compare current version with latest tag
         id: compare_versions
         run: |
@@ -62,7 +52,6 @@ jobs:
             echo "update_needed=false" >> $GITHUB_OUTPUT
           fi
 
-      # If an update is needed, update the Dockerfiles and create a PR
       - name: Update Dockerfiles and create PR
         if: steps.compare_versions.outputs.update_needed == 'true'
         run: |
@@ -85,6 +74,8 @@ jobs:
 
           # Create a PR using GitHub CLI
           gh pr create --title "Update llvm from version $current_version to version $latest_tag" \
-                       --body "This PR updates llvm from version $current_version to $latest_tag.\n\nCC: @sbomer, @mthalman" \
+                       --body "This PR updates llvm from version $current_version to $latest_tag.\n\nCC: sbomer, mthalman" \
                        --base main \
                        --head $GITHUB_REF
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
