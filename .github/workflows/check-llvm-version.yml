@@ -97,7 +97,7 @@ jobs:
           current_version=${{ steps.compare_versions.outputs.current_version }}
           
           gh pr create --title "Update llvm from version $current_version to version $latest_tag" \
-                       --body "This PR updates llvm from version $current_version to $latest_tag.\n\ncc sbomer, mthalman" \
+                       --body "This PR updates llvm from version $current_version to $latest_tag.<br/><br/>cc sbomer, mthalman" \
                        --base main \
                        --head update/llvm-version-${latest_tag}
         env:
