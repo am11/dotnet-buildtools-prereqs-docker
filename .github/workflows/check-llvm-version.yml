@@ -15,8 +15,8 @@ jobs:
       - name: Get latest llvm-project tag
         id: get_tag
         run: |
-          STABLE_TAG=$(curl --silent https://api.github.com/repos/llvm/llvm-project/tags | jq -r '.[].name' | grep -E '^llvmorg-[0-9]+\.[0-9]+\.[0-9]+$' | sort --version-sort | tail -n 1)
-          RC_TAG=$(curl --silent https://api.github.com/repos/llvm/llvm-project/tags | jq -r '.[].name' | grep -E '^llvmorg-[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$' | sort --version-sort | tail -n 1)
+          STABLE_TAG=$(curl --silent https://api.github.com/repos/llvm/llvm-project/tags | jq -r '.[].name' | grep -E '^llvmorg-[0-9]+\.[0-9]+\.[0-9]+$' | sort --version-sort | tail -n 1 | sed 's/^llvmorg-//')
+          RC_TAG=$(curl --silent https://api.github.com/repos/llvm/llvm-project/tags | jq -r '.[].name' | grep -E '^llvmorg-[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$' | sort --version-sort | tail -n 1 | sed 's/^llvmorg-//')
           echo "Latest stable tag: $STABLE_TAG"
           echo "Latest RC tag: $RC_TAG"
           echo "latest_stable_tag=$STABLE_TAG" >> $GITHUB_OUTPUT
