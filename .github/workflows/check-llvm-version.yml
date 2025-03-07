@@ -69,30 +69,34 @@ jobs:
           echo "SHA256 checksum: $sha256"
           echo "sha256_checksum=$sha256" >> $GITHUB_OUTPUT
 
-      - name: Update Dockerfiles and create PR
+      - name: Create a new branch and update Dockerfiles
         if: steps.compare_versions.outputs.update_needed == 'true'
         run: |
           latest_tag=${{ steps.compare_versions.outputs.latest_tag }}
           sha256_checksum=${{ steps.download_and_sha.outputs.sha256_checksum }}
 
-          # Update Dockerfiles with the new version and SHA256 checksum
           sed -i "s/LLVM_VERSION=[^ ]*/LLVM_VERSION=${latest_tag}/g" src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
           sed -i "s/LLVM_VERSION=[^ ]*/LLVM_VERSION=${latest_tag}/g" src/azurelinux/3.0/net10.0/opt/Dockerfile
           sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/\$sha256_checksum llvm-project.src.tar.xz/g" src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
           sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/\$sha256_checksum llvm-project.src.tar.xz/g" src/azurelinux/3.0/net10.0/opt/Dockerfile
 
-          # Commit the changes
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
+          git checkout -b update/llvm-version-${latest_tag}
           git add src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
           git add src/azurelinux/3.0/net10.0/opt/Dockerfile
           git commit -m "Update llvm from version $current_version to version $latest_tag"
-          git push origin HEAD
+          git push origin update/llvm-version-${latest_tag}
 
-          # Create a PR using GitHub CLI
+      - name: Create a Pull Request
+        if: steps.compare_versions.outputs.update_needed == 'true'
+        run: |
+          latest_tag=${{ steps.compare_versions.outputs.latest_tag }}
+          current_version=${{ steps.compare_versions.outputs.current_version }}
+          
           gh pr create --title "Update llvm from version $current_version to version $latest_tag" \
                        --body "This PR updates llvm from version $current_version to $latest_tag.\n\ncc sbomer, mthalman" \
                        --base main \
-                       --head $GITHUB_REF
+                       --head update/llvm-version-${latest_tag}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
