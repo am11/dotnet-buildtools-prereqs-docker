@@ -79,8 +79,8 @@ jobs:
 
           sed -i "s/LLVM_VERSION=[^ ]*/LLVM_VERSION=${latest_tag}/g" src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
           sed -i "s/LLVM_VERSION=[^ ]*/LLVM_VERSION=${latest_tag}/g" src/azurelinux/3.0/net10.0/opt/Dockerfile
-          sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/\$sha256_checksum llvm-project.src.tar.xz/g" src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
-          sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/\$sha256_checksum llvm-project.src.tar.xz/g" src/azurelinux/3.0/net10.0/opt/Dockerfile
+          sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/${sha256_checksum} llvm-project.src.tar.xz/g" src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
+          sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/${sha256_checksum} llvm-project.src.tar.xz/g" src/azurelinux/3.0/net10.0/opt/Dockerfile
 
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
