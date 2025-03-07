@@ -25,6 +25,7 @@ jobs:
       - name: Compare current version with latest tag
         id: compare_versions
         run: |
+          git status
           cat src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
           current_version=$(grep -oP 'LLVM_VERSION=\K[^ ]+' src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile)
           stable_tag=${{ steps.get_tag.outputs.latest_stable_tag }}
