@@ -1,0 +1,60 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
+  <UsingTask TaskName="ProcessDockerTemplate"
+            TaskFactory="RoslynCodeTaskFactory"
+            AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <TemplateFile ParameterType="System.String" Required="true"/>
+      <TemplateFileDir ParameterType="System.String" Required="true"/>
+      <ProcessedDockerfile ParameterType="System.String" Required="true"/>
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+        List<string> processedLines = [];
+        foreach (var line in File.ReadAllLines(TemplateFile))
+        {
+            if (Regex.IsMatch(line, @"^DOTNET_DOCKER_IMPORT\s+"))
+            {
+                var filePath = Path.Combine(TemplateFileDir, line.Substring(21).Trim());
+                if (File.Exists(filePath))
+                {
+                    processedLines.Add(File.ReadAllText(filePath));
+                }
+                else
+                {
+                    processedLines.Add(line);
+                }
+            }
+            else
+            {
+                processedLines.Add(line);
+            }
+        }
+
+        File.WriteAllLines(ProcessedDockerfile, processedLines);
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="MakeDockerFiles"
+          Inputs="$(TemplateFile)"
+          Outputs="$(BaseIntermediateOutputPath)$(TemplateFile.Replace('$(RepoRoot)', '')).gen">
+    <PropertyGroup>
+      <ProcessedDockerfile>$(ArtifactsObjDir)$(TemplateFile.Replace('$(RepoRoot)', '')).gen</ProcessedDockerfile>
+      <TemplateFileDir>$([System.IO.Path]::GetDirectoryName($(TemplateFile)))\</TemplateFileDir>
+    </PropertyGroup>
+
+    <!-- initialize empty file, it creates output directory structures -->
+    <WriteLinesToFile File="$(ProcessedDockerfile)" Lines="" Overwrite="true" />
+
+    <ProcessDockerTemplate 
+        TemplateFile="$(TemplateFile)" 
+        TemplateFileDir="$(TemplateFileDir)" 
+        ProcessedDockerfile="$(ProcessedDockerfile)"/>
+  </Target>
+</Project>
