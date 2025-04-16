@@ -44,6 +44,7 @@ jobs:
           # Check if update is needed
           if [[ "$current_version" != "$latest_tag" ]]; then
             echo "New version available: $latest_tag"
+            echo "current_version=$current_version" >> $GITHUB_OUTPUT
             echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
             echo "update_needed=true" >> $GITHUB_OUTPUT
           else
@@ -57,30 +58,42 @@ jobs:
         run: |
           latest_tag=${{ steps.compare_versions.outputs.latest_tag }}
 
-          # Set the download URL
+          # Set the download URLs
           file_url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${latest_tag}/llvm-project-${latest_tag}.src.tar.xz"
+          sig_url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${latest_tag}/llvm-project-${latest_tag}.src.tar.xz.sig"
           output_file="llvm-project-${latest_tag}.src.tar.xz"
 
-          # Download the file
+          # Download the files
           wget $file_url -O $output_file
+          wget $sig_url -O llvm-project-${latest_tag}.src.tar.xz.sig
 
-          # Calculate the SHA256 checksum
+          # Calculate the SHA256 checksums
           sha256sum $output_file > checksum.txt
+          sha256sum llvm-project-${latest_tag}.src.tar.xz.sig > sig_checksum.txt
           sha256=$(awk '{ print $1 }' checksum.txt)
+          sig_sha256=$(awk '{ print $1 }' sig_checksum.txt)
 
           echo "SHA256 checksum: $sha256"
+          echo "Signature SHA256 checksum: $sig_sha256"
           echo "sha256_checksum=$sha256" >> $GITHUB_OUTPUT
+          echo "sha256_checksum_sig=$sig_sha256" >> $GITHUB_OUTPUT
 
       - name: Create a new branch and update Dockerfiles
         if: steps.compare_versions.outputs.update_needed == 'true'
         run: |
           latest_tag=${{ steps.compare_versions.outputs.latest_tag }}
+          current_version=${{ steps.compare_versions.outputs.current_version }}
           sha256_checksum=${{ steps.download_and_sha.outputs.sha256_checksum }}
+          sha256_checksum_sig=${{ steps.download_and_sha.outputs.sha256_checksum_sig }}
 
-          sed -i "s/LLVM_VERSION=[^ ]*/LLVM_VERSION=${latest_tag}/g" src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
-          sed -i "s/LLVM_VERSION=[^ ]*/LLVM_VERSION=${latest_tag}/g" src/azurelinux/3.0/net10.0/opt/Dockerfile
-          sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/${sha256_checksum} llvm-project.src.tar.xz/g" src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile
-          sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/${sha256_checksum} llvm-project.src.tar.xz/g" src/azurelinux/3.0/net10.0/opt/Dockerfile
+          for file in \
+            src/azurelinux/3.0/net10.0/crossdeps-builder/amd64/Dockerfile \
+            src/azurelinux/3.0/net10.0/opt/Dockerfile
+          do
+            sed -i "s/LLVM_VERSION=[^ ]*/LLVM_VERSION=${latest_tag}/g" "$file"
+            sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz/${sha256_checksum} llvm-project.src.tar.xz/g" "$file"
+            sed -i "s/\([a-f0-9]\{64\}\) llvm-project.src.tar.xz.sig/${sha256_checksum_sig} llvm-project.src.tar.xz.sig/g" "$file"
+          done
 
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
