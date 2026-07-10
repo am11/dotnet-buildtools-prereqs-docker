@@ -96,6 +96,8 @@ RUN \
     mkdir llvm-project.src && \
     tar -xf llvm-project.src.tar.xz --directory llvm-project.src --strip-components=1 && \
     rm llvm-project.src.tar.xz && \
+    # apply kernel header patch
+    curl -sSL https://github.com/llvm/llvm-project/commit/3dc4fd6dd41100f051a63642f449b16324389c96.diff | patch -p1 -d llvm-project.src && \
     mkdir build && \
     pushd build && \
     cmake ../llvm-project.src/llvm \
