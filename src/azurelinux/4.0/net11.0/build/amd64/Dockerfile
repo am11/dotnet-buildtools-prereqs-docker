@@ -31,12 +31,15 @@ RUN dnf update -y && \
     && dnf clean all
 
 # Install PowerShell
-RUN curl -L https://github.com/PowerShell/PowerShell/releases/download/v${POWERSHELL_VERSION}/powershell-${POWERSHELL_VERSION}-linux-x64.tar.gz -o /tmp/powershell.tar.gz \
+RUN POWERSHELL_FILE="powershell-${POWERSHELL_VERSION}-linux-x64.tar.gz" \
+    && curl -L "https://github.com/PowerShell/PowerShell/releases/download/v${POWERSHELL_VERSION}/${POWERSHELL_FILE}" -o /tmp/powershell.tar.gz \
+    && curl -L "https://github.com/PowerShell/PowerShell/releases/download/v${POWERSHELL_VERSION}/hashes.sha256" | iconv -f UTF-16LE -t UTF-8 | tr -d '\r' > /tmp/hashes.sha256 \
+    && echo "$(grep "${POWERSHELL_FILE}" /tmp/hashes.sha256 | awk '{print $1}')  /tmp/powershell.tar.gz" | sha256sum -c - \
     && mkdir -p /opt/microsoft/powershell \
     && tar zxf /tmp/powershell.tar.gz -C /opt/microsoft/powershell \
     && chmod +x /opt/microsoft/powershell/pwsh \
     && ln -s /opt/microsoft/powershell/pwsh /usr/bin/pwsh \
-    && rm -f /tmp/powershell.tar.gz
+    && rm -f /tmp/powershell.tar.gz /tmp/hashes.sha256
 
 RUN ln -sf /usr/bin/node-24 /usr/bin/node && \
     ln -sf /usr/bin/npm-24 /usr/bin/npm
